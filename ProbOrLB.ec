@@ -9,7 +9,7 @@ op arity : {int | 1 <= arity} as ge1_arity.
 
 (* number of allowed queries *)
 
-op nq  : {int | 0 <= nq} as ge0_nq.   
+op numq  : {int | 0 <= numq} as ge0_numq.
 
 (* module type of algorithms
 
@@ -55,8 +55,8 @@ module GOr(Alg : ALG) = {
     b <$ {0,1};
     (* initialize the algorithm *)
     Alg.init();
-    (* let algorithm adaptively issue its nq queries *)
-    while (i < nq) {
+    (* let algorithm adaptively issue its numq queries *)
+    while (i < numq) {
       (* ask algorithm to issue its next query *)
       qry <@ Alg.query();
       if (qry < 0 \/ arity <= qry) {  (* qry is 0, if out of range *)
@@ -79,19 +79,19 @@ module GOr(Alg : ALG) = {
      lemma GOr_bound (Alg <: ALG) &m :
        islossless Alg.query => islossless Alg.answer =>
        islossless Alg.result =>
-       Pr[GOr(Alg).main() @ &m : res] <= 1%r / 2%r + nq%r / (arity * 2)%r.
+       Pr[GOr(Alg).main() @ &m : res] <= 1%r / 2%r + numq%r / (arity * 2)%r.
 
    saying that, for all algorithms Alg whose procedures always
    terminate with probability 1%r, the probability that Alg wins the
    lower bound game is no more than
 
-     1%r / 2%r + nq%r / (arity * 2)%r
+     1%r / 2%r + numq%r / (arity * 2)%r
 
    (exp%r means to treat the integer expression exp as a real number)
 
-   E.g., if we set arity = 100 and nq = 79, then
+   E.g., if we set arity = 100 and numq = 79, then
 
-     1%r / 2%r + nq%r / (arity * 2)%r
+     1%r / 2%r + numq%r / (arity * 2)%r
 
    is 0.895
 
@@ -129,7 +129,7 @@ local module G1 = {
     b <$ {0,1};
     bad <- false;
     Alg.init();
-    while (i < nq) {
+    while (i < numq) {
       qry <@ Alg.query();
       if (qry < 0 \/ arity <= qry) {
         qry <- 0;
@@ -161,7 +161,7 @@ local module G2 = {
     b <$ {0,1};
     bad <- false;
     Alg.init();
-    while (i < nq) {
+    while (i < numq) {
       qry <@ Alg.query();
       if (qry < 0 \/ arity <= qry) {
         qry <- 0;
@@ -241,7 +241,7 @@ local module G2' = {
     l <$ [0 .. arity - 1];
     b <$ {0,1};
     Alg.init();
-    while (i < nq) {
+    while (i < numq) {
       qry <@ Alg.query();
       if (qry < 0 \/ arity <= qry) {
         qry <- 0;
@@ -269,14 +269,14 @@ seq 5 5 :
    ! G2.bad{1} /\ qrys{2} = []); first call (_ : true); auto.
 call (_ : true); first auto.
 while
-  (={i, l, b, glob Alg} /\ 0 <= i{2} <= nq /\ size qrys{2} = i{2} /\
+  (={i, l, b, glob Alg} /\ 0 <= i{2} <= numq /\ size qrys{2} = i{2} /\
    (G2.bad{1} <=> l{2} \in qrys{2} /\ b{2})).
 wp.
 call (_ : true).
 wp.
 call (_ : true).
 auto; smt(size_cat mem_cat).
-auto; smt(ge0_nq).
+auto; smt(ge0_numq).
 qed.
 
 (* bound the probability of failure in G2' (not clear how to do
@@ -293,21 +293,21 @@ rewrite (lez_trans (size (undup xs))) 1:count_size size_undup.
 qed.
 
 local lemma G2'_bad &m :
-  Pr[G2'.main() @ &m : G2'.bad] <= nq%r / (arity * 2)%r.
+  Pr[G2'.main() @ &m : G2'.bad] <= numq%r / (arity * 2)%r.
 proof.
 byphoare => //.
 proc.
 swap 7 1; wp.
 swap [3..4] 3.
 seq 5 :
-  (size qrys = nq)
+  (size qrys = numq)
   1%r
-  (nq%r / (arity * 2)%r)
+  (numq%r / (arity * 2)%r)
   0%r
   0%r => //.
 seq 1 :
   (l \in qrys)
-  (nq%r / arity%r)
+  (numq%r / arity%r)
   (1%r / 2%r)
   1%r
   0%r => //.
@@ -326,7 +326,7 @@ auto => />.
 smt().
 hoare.
 call (_ : true).
-while (i <= nq /\ size qrys = i).
+while (i <= numq /\ size qrys = i).
 wp.
 call (_ : true).
 wp.
@@ -338,21 +338,21 @@ smt().
 by rewrite cats1 size_rcons.
 call (_ : true).
 auto; progress.
-smt(ge0_nq).
+smt(ge0_numq).
 smt().
 qed.
 
 (* bound the probability of failure in G2 *)
 
 local lemma G2_bad &m :
-  Pr[G2.main() @ &m : G2.bad] <= nq%r / (arity * 2)%r.
+  Pr[G2.main() @ &m : G2.bad] <= numq%r / (arity * 2)%r.
 proof.
 rewrite (G2_G2'_bad &m) (G2'_bad &m).
 qed.
 
 local lemma G1_G2 &m :
   `|Pr[G1.main() @ &m : res] - Pr[G2.main() @ &m : res]| <=
-  nq%r / (arity * 2)%r.
+  numq%r / (arity * 2)%r.
 proof.
 rewrite (ler_trans Pr[G2.main() @ &m : G2.bad]).
 byequiv
@@ -367,7 +367,7 @@ qed.
 
 local lemma GOr_G2 &m :
   `|Pr[GOr(Alg).main() @ &m : res] - Pr[G2.main() @ &m : res]| <=
-  nq%r / (arity * 2)%r.
+  numq%r / (arity * 2)%r.
 proof.
 rewrite (GOr_G1 &m) (G1_G2 &m).
 qed.
@@ -383,7 +383,7 @@ local module G3 = {
     l <$ [0 .. arity - 1];
     b <$ {0,1};
     Alg.init();
-    while (i < nq) {
+    while (i < numq) {
       qry <@ Alg.query();
       if (qry < 0 \/ arity <= qry) {
         qry <- 0;
@@ -402,7 +402,7 @@ proof. byequiv => //; sim. qed.
 
 local lemma GOr_G3 &m :
   `|Pr[GOr(Alg).main() @ &m : res] - Pr[G3.main() @ &m : res]| <=
-  nq%r / (arity * 2)%r.
+  numq%r / (arity * 2)%r.
 proof.
 rewrite -(G2_G3 &m) (GOr_G2 &m).
 qed.
@@ -420,7 +420,7 @@ rnd (pred1 b').
 rnd.
 call (_ : true).
 apply Alg_result_ll.
-while (i <= nq) (nq - i).
+while (i <= numq) (numq - i).
 move => z.
 wp.
 call (_ : true).
@@ -431,7 +431,7 @@ apply Alg_query_ll.
 auto; smt().
 call Alg_init_ll.
 auto; progress.
-smt(ge0_nq).
+smt(ge0_numq).
 smt().
 rewrite dbool1E /#.
 smt().
@@ -441,7 +441,7 @@ qed.
 
 lemma GOr_close_bound &m :
   `|Pr[GOr(Alg).main() @ &m : res] - 1%r / 2%r| <=
-  nq%r / (arity * 2)%r.
+  numq%r / (arity * 2)%r.
 proof.
 rewrite -(G3_prob &m) (GOr_G3 &m).
 qed.
@@ -452,7 +452,7 @@ lemma GOr_close_to_half_bound (Alg <: ALG) &m :
   islossless Alg.init => islossless Alg.query =>
   islossless Alg.answer => islossless Alg.result =>
   `|Pr[GOr(Alg).main() @ &m : res] - 1%r / 2%r| <=
-  nq%r / (arity * 2)%r.
+  numq%r / (arity * 2)%r.
 proof.
 move => Alg_init_ll Alg_query_ll Alg_answer_ll Alg_result_ll.
 apply (GOr_close_bound Alg _ _ _ _ &m).
@@ -466,7 +466,7 @@ lemma GOr_bound (Alg <: ALG) &m :
   islossless Alg.init => islossless Alg.query =>
   islossless Alg.answer => islossless Alg.result =>
   Pr[GOr(Alg).main() @ &m : res] <=
-  1%r / 2%r + nq%r / (arity * 2)%r.
+  1%r / 2%r + numq%r / (arity * 2)%r.
 proof.
 move => Alg_init_ll Alg_query_ll Alg_answer_ll Alg_result_ll.
 have close_bnd := GOr_close_to_half_bound Alg &m _ _ _ _.
