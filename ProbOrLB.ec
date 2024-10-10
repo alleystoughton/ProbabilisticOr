@@ -34,11 +34,11 @@ module type ALG = {
   proc result() : bool
 }.
 
-(* relative to a uniformly randomly chosen l in the range 0 to
+(* relative to a uniformly randomly chosen j in the range 0 to
    arity - 1, and a uniformly random boolean b, answers the query i: *)
 
-op answer (l : int, b : bool, i : int) : bool =
-  if i = l then b else false.
+op answer (j : int, b : bool, i : int) : bool =
+  if i = j then b else false.
 
 (* lower bound game
 
@@ -48,10 +48,10 @@ module GOr(Alg : ALG) = {
   proc main() : bool = {
     var i : int <- 0;
     var qry : int;
-    var l : int;
+    var j : int;
     var b, b', a : bool;
     (* choose the two random parameters used to answer queries *)
-    l <$ [0 .. arity - 1];
+    j <$ [0 .. arity - 1];
     b <$ {0,1};
     (* initialize the algorithm *)
     Alg.init();
@@ -63,7 +63,7 @@ module GOr(Alg : ALG) = {
         qry <- 0;
       }
       (* give algorithm answer to its query *)
-      Alg.answer(answer l b qry);
+      Alg.answer(answer j b qry);
       i <- i + 1;
     }
     (* ask the algorithm to predict result of or function *)
@@ -96,11 +96,7 @@ module GOr(Alg : ALG) = {
    is 0.895
 
    Thus, when arity = 100, any algorithm that wins the lower bound game
-   90% of the time needs must ask at least 80 queries
-
-   More generally, we can conclude that any algorithm that returns the
-   correct answer at least 90% of the time must ask at least 80
-   queries *)
+   90% of the time needs must ask at least 80 queries *)
 
 section.
 
@@ -123,9 +119,9 @@ local module G1 = {
   proc main() : bool = {
     var i : int <- 0;
     var qry : int;
-    var l : int;
+    var j : int;
     var b, b', a : bool;
-    l <$ [0 .. arity - 1];
+    j <$ [0 .. arity - 1];
     b <$ {0,1};
     bad <- false;
     Alg.init();
@@ -134,8 +130,8 @@ local module G1 = {
       if (qry < 0 \/ arity <= qry) {
         qry <- 0;
       }
-      bad <- bad \/ qry = l /\ b;
-      Alg.answer(answer l b qry);
+      bad <- bad \/ qry = j /\ b;
+      Alg.answer(answer j b qry);
       i <- i + 1;
     }
     b' <@ Alg.result();
@@ -155,9 +151,9 @@ local module G2 = {
   proc main() : bool = {
     var i : int <- 0;
     var qry : int;
-    var l : int;
+    var j : int;
     var b, b', a : bool;
-    l <$ [0 .. arity - 1];
+    j <$ [0 .. arity - 1];
     b <$ {0,1};
     bad <- false;
     Alg.init();
@@ -166,7 +162,7 @@ local module G2 = {
       if (qry < 0 \/ arity <= qry) {
         qry <- 0;
       }
-      bad <- bad \/ qry = l /\ b;
+      bad <- bad \/ qry = j /\ b;
       Alg.answer(false);  (* note *)
       i <- i + 1;
     }
@@ -184,7 +180,7 @@ local lemma G1_G2_equiv :
 proof.
 proc.
 seq 5 5 :
-  (={i, l, b, glob Alg} /\ ={bad}(G1, G2) /\
+  (={i, j, b, glob Alg} /\ ={bad}(G1, G2) /\
    i{1} = 0 /\ ! G1.bad{1}); first call (_ : true); auto.
 call
   (_ :
@@ -195,9 +191,9 @@ proc
   (={bad}(G1, G2))
   (G1.bad{1}); first 2 smt().
 apply Alg_result_ll.
-while (={i, l, b} /\ ={bad}(G1, G2) /\ (! G1.bad{1} => ={glob Alg})).
+while (={i, j, b} /\ ={bad}(G1, G2) /\ (! G1.bad{1} => ={glob Alg})).
 seq 2 2 :
-  (={i, l, b} /\ ={bad}(G1, G2) /\ (! G1.bad{1} => ={qry, glob Alg})).
+  (={i, j, b} /\ ={bad}(G1, G2) /\ (! G1.bad{1} => ={qry, glob Alg})).
 wp.
 call
   (_ :
@@ -235,10 +231,10 @@ local module G2' = {
   proc main() : bool = {
     var i : int <- 0;
     var qry : int;
-    var l : int;
+    var j : int;
     var b, b', a : bool;
     var qrys : int list <- [];
-    l <$ [0 .. arity - 1];
+    j <$ [0 .. arity - 1];
     b <$ {0,1};
     Alg.init();
     while (i < numq) {
@@ -250,7 +246,7 @@ local module G2' = {
       Alg.answer(false);
       i <- i + 1;
     }
-    bad <- l \in qrys /\ b;
+    bad <- j \in qrys /\ b;
     b' <@ Alg.result();
     return b' = b;
   }
@@ -265,12 +261,12 @@ proof.
 byequiv => //.
 proc.
 seq 5 5 :
-  (={i, l, b, glob Alg} /\ i{1} = 0 /\
+  (={i, j, b, glob Alg} /\ i{1} = 0 /\
    ! G2.bad{1} /\ qrys{2} = []); first call (_ : true); auto.
 call (_ : true); first auto.
 while
-  (={i, l, b, glob Alg} /\ 0 <= i{2} <= numq /\ size qrys{2} = i{2} /\
-   (G2.bad{1} <=> l{2} \in qrys{2} /\ b{2})).
+  (={i, j, b, glob Alg} /\ 0 <= i{2} <= numq /\ size qrys{2} = i{2} /\
+   (G2.bad{1} <=> j{2} \in qrys{2} /\ b{2})).
 wp.
 call (_ : true).
 wp.
@@ -306,7 +302,7 @@ seq 5 :
   0%r
   0%r => //.
 seq 1 :
-  (l \in qrys)
+  (j \in qrys)
   (numq%r / arity%r)
   (1%r / 2%r)
   1%r
@@ -378,9 +374,9 @@ local module G3 = {
   proc main() : bool = {
     var i : int <- 0;
     var qry : int;
-    var l : int;
+    var j : int;
     var b, b', a : bool;
-    l <$ [0 .. arity - 1];
+    j <$ [0 .. arity - 1];
     b <$ {0,1};
     Alg.init();
     while (i < numq) {
