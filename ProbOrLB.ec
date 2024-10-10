@@ -3,8 +3,13 @@
 require import AllCore Distr DBool DInterval List StdOrder.
 import RealOrder.
 
-op n : {int | 1 <= n} as ge1_n.  (* number of arguments to or function *)
-op q : {int | 0 <= q} as ge0_q.  (* number of allowed queries *)
+(* number of arguments to or function *)
+
+op arity : {int | 1 <= arity} as ge1_arity.
+
+(* number of allowed queries *)
+
+op nq  : {int | 0 <= nq} as ge0_nq.   
 
 (* module type of algorithms
 
@@ -29,8 +34,8 @@ module type ALG = {
   proc result() : bool
 }.
 
-(* relative to a uniformly randomly chosen l in the range 0 to n - 1,
-   and a uniformly random boolean b, answers the query i: *)
+(* relative to a uniformly randomly chosen l in the range 0 to
+   arity - 1, and a uniformly random boolean b, answers the query i: *)
 
 op answer (l : int, b : bool, i : int) : bool =
   if i = l then b else false.
@@ -46,15 +51,15 @@ module GOr(Alg : ALG) = {
     var l : int;
     var b, b', a : bool;
     (* choose the two random parameters, used to answer queries *)
-    l <$ [0 .. n - 1];
+    l <$ [0 .. arity - 1];
     b <$ {0,1};
     (* initialize the algorithm *)
     Alg.init();
-    (* let algorithm adaptively issue its q queries *)
-    while (i < q) {
+    (* let algorithm adaptively issue its nq queries *)
+    while (i < nq) {
       (* ask algorithm to issue its next query *)
       qry <@ Alg.query();
-      if (qry < 0 \/ n <= qry) {  (* qry is 0, if out of range *)
+      if (qry < 0 \/ arity <= qry) {  (* qry is 0, if out of range *)
         qry <- 0;
       }
       (* give algorithm answer to its query *)
@@ -74,23 +79,23 @@ module GOr(Alg : ALG) = {
      lemma GOr_bound (Alg <: ALG) &m :
        islossless Alg.query => islossless Alg.answer =>
        islossless Alg.result =>
-       Pr[GOr(Alg).main() @ &m : res] <= 1%r / 2%r + q%r / (n * 2)%r.
+       Pr[GOr(Alg).main() @ &m : res] <= 1%r / 2%r + nq%r / (arity * 2)%r.
 
    saying that, for all algorithms Alg whose procedures always
    terminate with probability 1%r, the probability that Alg wins the
    lower bound game is no more than
 
-     1%r / 2%r + q%r / (n * 2)%r
+     1%r / 2%r + nq%r / (arity * 2)%r
 
    (exp%r means to treat the integer expression exp as a real number)
 
-   E.g., if we set n = 100 and q = 79, then
+   E.g., if we set arity = 100 and nq = 79, then
 
-     1%r / 2%r + q%r / (n * 2)%r
+     1%r / 2%r + nq%r / (arity * 2)%r
 
    is 0.895
 
-   Thus, when n = 100, any algorithm that wins the lower bound game
+   Thus, when arity = 100, any algorithm that wins the lower bound game
    90% of the time needs must ask at least 80 queries
 
    More generally, we can conclude that any algorithm that returns the
@@ -120,13 +125,13 @@ local module G1 = {
     var qry : int;
     var l : int;
     var b, b', a : bool;
-    l <$ [0 .. n - 1];
+    l <$ [0 .. arity - 1];
     b <$ {0,1};
     bad <- false;
     Alg.init();
-    while (i < q) {
+    while (i < nq) {
       qry <@ Alg.query();
-      if (qry < 0 \/ n <= qry) {
+      if (qry < 0 \/ arity <= qry) {
         qry <- 0;
       }
       bad <- bad \/ qry = l /\ b;
@@ -152,13 +157,13 @@ local module G2 = {
     var qry : int;
     var l : int;
     var b, b', a : bool;
-    l <$ [0 .. n - 1];
+    l <$ [0 .. arity - 1];
     b <$ {0,1};
     bad <- false;
     Alg.init();
-    while (i < q) {
+    while (i < nq) {
       qry <@ Alg.query();
-      if (qry < 0 \/ n <= qry) {
+      if (qry < 0 \/ arity <= qry) {
         qry <- 0;
       }
       bad <- bad \/ qry = l /\ b;
@@ -233,12 +238,12 @@ local module G2' = {
     var l : int;
     var b, b', a : bool;
     var qrys : int list <- [];
-    l <$ [0 .. n - 1];
+    l <$ [0 .. arity - 1];
     b <$ {0,1};
     Alg.init();
-    while (i < q) {
+    while (i < nq) {
       qry <@ Alg.query();
-      if (qry < 0 \/ n <= qry) {
+      if (qry < 0 \/ arity <= qry) {
         qry <- 0;
       }
       qrys <- qrys ++ [qry];
@@ -264,14 +269,14 @@ seq 5 5 :
    ! G2.bad{1} /\ qrys{2} = []); first call (_ : true); auto.
 call (_ : true); first auto.
 while
-  (={i, l, b, glob Alg} /\ 0 <= i{2} <= q /\ size qrys{2} = i{2} /\
+  (={i, l, b, glob Alg} /\ 0 <= i{2} <= nq /\ size qrys{2} = i{2} /\
    (G2.bad{1} <=> l{2} \in qrys{2} /\ b{2})).
 wp.
 call (_ : true).
 wp.
 call (_ : true).
 auto; smt(size_cat mem_cat).
-auto; smt(ge0_q).
+auto; smt(ge0_nq).
 qed.
 
 (* bound the probability of failure in G2' (not clear how to do
@@ -288,28 +293,28 @@ rewrite (lez_trans (size (undup xs))) 1:count_size size_undup.
 qed.
 
 local lemma G2'_bad &m :
-  Pr[G2'.main() @ &m : G2'.bad] <= q%r / (n * 2)%r.
+  Pr[G2'.main() @ &m : G2'.bad] <= nq%r / (arity * 2)%r.
 proof.
 byphoare => //.
 proc.
 swap 7 1; wp.
 swap [3..4] 3.
 seq 5 :
-  (size qrys = q)
+  (size qrys = nq)
   1%r
-  (q%r / (n * 2)%r)
+  (nq%r / (arity * 2)%r)
   0%r
   0%r => //.
 seq 1 :
   (l \in qrys)
-  (q%r / n%r)
+  (nq%r / arity%r)
   (1%r / 2%r)
   1%r
   0%r => //.
 rnd.
 auto; progress.
-rewrite dinterE /= lez_maxr 1:(lez_trans 1) // 1:ge1_n ler_pmul2r.
-rewrite invr_gt0 lt_fromint ltzE ge1_n.
+rewrite dinterE /= lez_maxr 1:(lez_trans 1) // 1:ge1_arity ler_pmul2r.
+rewrite invr_gt0 lt_fromint ltzE ge1_arity.
 rewrite le_fromint -H size_filter count_mem_uniq_le_size_of_mem range_uniq.
 rnd (pred1 true).
 auto; progress.
@@ -321,7 +326,7 @@ auto => />.
 smt().
 hoare.
 call (_ : true).
-while (i <= q /\ size qrys = i).
+while (i <= nq /\ size qrys = i).
 wp.
 call (_ : true).
 wp.
@@ -333,21 +338,21 @@ smt().
 by rewrite cats1 size_rcons.
 call (_ : true).
 auto; progress.
-smt(ge0_q).
+smt(ge0_nq).
 smt().
 qed.
 
 (* bound the probability of failure in G2 *)
 
 local lemma G2_bad &m :
-  Pr[G2.main() @ &m : G2.bad] <= q%r / (n * 2)%r.
+  Pr[G2.main() @ &m : G2.bad] <= nq%r / (arity * 2)%r.
 proof.
 rewrite (G2_G2'_bad &m) (G2'_bad &m).
 qed.
 
 local lemma G1_G2 &m :
   `|Pr[G1.main() @ &m : res] - Pr[G2.main() @ &m : res]| <=
-  q%r / (n * 2)%r.
+  nq%r / (arity * 2)%r.
 proof.
 rewrite (ler_trans Pr[G2.main() @ &m : G2.bad]).
 byequiv
@@ -362,7 +367,7 @@ qed.
 
 local lemma GOr_G2 &m :
   `|Pr[GOr(Alg).main() @ &m : res] - Pr[G2.main() @ &m : res]| <=
-  q%r / (n * 2)%r.
+  nq%r / (arity * 2)%r.
 proof.
 rewrite (GOr_G1 &m) (G1_G2 &m).
 qed.
@@ -375,12 +380,12 @@ local module G3 = {
     var qry : int;
     var l : int;
     var b, b', a : bool;
-    l <$ [0 .. n - 1];
+    l <$ [0 .. arity - 1];
     b <$ {0,1};
     Alg.init();
-    while (i < q) {
+    while (i < nq) {
       qry <@ Alg.query();
-      if (qry < 0 \/ n <= qry) {
+      if (qry < 0 \/ arity <= qry) {
         qry <- 0;
       }
       Alg.answer(false);
@@ -397,7 +402,7 @@ proof. byequiv => //; sim. qed.
 
 local lemma GOr_G3 &m :
   `|Pr[GOr(Alg).main() @ &m : res] - Pr[G3.main() @ &m : res]| <=
-  q%r / (n * 2)%r.
+  nq%r / (arity * 2)%r.
 proof.
 rewrite -(G2_G3 &m) (GOr_G2 &m).
 qed.
@@ -415,7 +420,7 @@ rnd (pred1 b').
 rnd.
 call (_ : true).
 apply Alg_result_ll.
-while (i <= q) (q - i).
+while (i <= nq) (nq - i).
 move => z.
 wp.
 call (_ : true).
@@ -426,17 +431,17 @@ apply Alg_query_ll.
 auto; smt().
 call Alg_init_ll.
 auto; progress.
-smt(ge0_q).
+smt(ge0_nq).
 smt().
 rewrite dbool1E /#.
 smt().
 rewrite weight_dinter.
-smt(ge1_n).
+smt(ge1_arity).
 qed.
 
 lemma GOr_close_bound &m :
   `|Pr[GOr(Alg).main() @ &m : res] - 1%r / 2%r| <=
-  q%r / (n * 2)%r.
+  nq%r / (arity * 2)%r.
 proof.
 rewrite -(G3_prob &m) (GOr_G3 &m).
 qed.
@@ -447,7 +452,7 @@ lemma GOr_close_to_half_bound (Alg <: ALG) &m :
   islossless Alg.init => islossless Alg.query =>
   islossless Alg.answer => islossless Alg.result =>
   `|Pr[GOr(Alg).main() @ &m : res] - 1%r / 2%r| <=
-  q%r / (n * 2)%r.
+  nq%r / (arity * 2)%r.
 proof.
 move => Alg_init_ll Alg_query_ll Alg_answer_ll Alg_result_ll.
 apply (GOr_close_bound Alg _ _ _ _ &m).
@@ -460,7 +465,8 @@ qed.
 lemma GOr_bound (Alg <: ALG) &m :
   islossless Alg.init => islossless Alg.query =>
   islossless Alg.answer => islossless Alg.result =>
-  Pr[GOr(Alg).main() @ &m : res] <= 1%r / 2%r + q%r / (n * 2)%r.
+  Pr[GOr(Alg).main() @ &m : res] <=
+  1%r / 2%r + nq%r / (arity * 2)%r.
 proof.
 move => Alg_init_ll Alg_query_ll Alg_answer_ll Alg_result_ll.
 have close_bnd := GOr_close_to_half_bound Alg &m _ _ _ _.
