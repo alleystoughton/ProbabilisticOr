@@ -50,7 +50,7 @@ module GOr(Alg : ALG) = {
     var qry : int;
     var l : int;
     var b, b', a : bool;
-    (* choose the two random parameters, used to answer queries *)
+    (* choose the two random parameters used to answer queries *)
     l <$ [0 .. arity - 1];
     b <$ {0,1};
     (* initialize the algorithm *)
