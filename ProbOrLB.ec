@@ -111,7 +111,7 @@ declare axiom Alg_answer_ll : islossless Alg.answer.
 declare axiom Alg_result_ll : islossless Alg.result.
 
 (* G1 is like GOr, except instrumented to detect a bad event:
-   at some stage of the loop, when b is true, algorithm queries l *)
+   at some stage of the loop, when b is true, algorithm queries j *)
 
 local module G1 = {
   var bad : bool
