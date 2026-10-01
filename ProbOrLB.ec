@@ -307,15 +307,18 @@ seq 1 :
   (1%r / 2%r)
   1%r
   0%r => //.
-rnd.
+rnd; simplify.
 auto; progress.
 rewrite dinterE /= lez_maxr 1:(lez_trans 1) // 1:ge1_arity ler_pmul2r.
 rewrite invr_gt0 lt_fromint ltzE ge1_arity.
 rewrite le_fromint -H size_filter count_mem_uniq_le_size_of_mem range_uniq.
-rnd (pred1 true).
+rewrite mulr_ge0 1:le_fromint 1:ge0_numq.
+rewrite invr_ge0 le_fromint 1:(lez_trans 1) // ge1_arity.
+rnd (pred1 true); simplify.
 auto; progress.
 rewrite dbool1E /#.
 smt().
+by rewrite invr_ge0 le_fromint.
 hoare.
 rnd.
 auto => />.
